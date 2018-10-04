@@ -9,7 +9,7 @@ import (
 
 // BaseModel base model definition for common entity's field
 type BaseModel struct {
-	ID        uuid.UUID  `gorm:"type:char(36); primary_key"`
+	ID        uuid.UUID  `json:"id" gorm:"type:char(36); primary_key"`
 	CreatedAt time.Time  `json:"-"`
 	UpdatedAt time.Time  `json:"-"`
 	DeletedAt *time.Time `sql:"index" json:"-"`

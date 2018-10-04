@@ -11,7 +11,7 @@
   name = "github.com/appleboy/gin-jwt"
   packages = ["."]
   revision = "18c777042be3ecc5cb3bf79cd24cbd6b28683cdc"
-  version = "v2.5.0"
+  version = "v2.3.1"
 
 [[projects]]
   branch = "master"
@@ -27,12 +27,6 @@
   packages = ["."]
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
   version = "v1.4.7"
-
-[[projects]]
-  name = "github.com/gin-contrib/cors"
-  packages = ["."]
-  revision = "cf4846e6a636a76237a28d9286f163c132e841bc"
-  version = "v1.2"
 
 [[projects]]
   branch = "master"
@@ -263,6 +257,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a0f6d33d66ad145e2e831d01139154a4093a30afe57792f6e3035a519dfe84a6"
+  inputs-digest = "2e2816d3f415c7a5e926a737955ef85a935080c0f015190d28ea3b11659828ec"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -5,9 +5,9 @@ import uuid "github.com/satori/go.uuid"
 //modeling table QuestionChoice
 type QuestionChoice struct {
 	BaseModel
-	QuestionOption string `gorm:"type:varchar(100);"`
-	key            string `gorm:"type:varchar(100);"`
+	Choice string `gorm:"type:varchar(100);"`
+	Key    string `gorm:"type:varchar(100);"`
 
-	QuestionID uuid.UUID
+	QuestionID uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
 	Question   Question
 }

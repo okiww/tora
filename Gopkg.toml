@@ -49,8 +49,6 @@
   name = "github.com/gin-contrib/cors"
   version = "1.2.0"
 
-
-
 [[constraint]]
   name = "github.com/appleboy/gin-jwt"
   version = "2.5.0"

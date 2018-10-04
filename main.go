@@ -8,16 +8,16 @@ import (
 	"okkybudiman/config"
 	"okkybudiman/data"
 	dataModel "okkybudiman/data/model"
-	u "okkybudiman/utility"
 	"os"
 	"os/signal"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt"
-	"github.com/gin-contrib/cors"
+	"okkybudiman/module/admin"
+	u "okkybudiman/utility"
+
+	"github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/glog"
-	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,11 +25,13 @@ var (
 	appName = "API TRY OUT RUANG GURU"
 	version = "development"
 
-	runMigration  bool
-	runSeeder     bool
-	configuration config.Configuration
-	dbFactory     *data.DBFactory
+	runMigration    bool
+	runSeeder       bool
+	configuration   config.Configuration
+	dbFactory       *data.DBFactory
+	adminController *admin.Controller
 )
+var identityKey = "id"
 
 type login struct {
 	Username string `form:"username" json:"username" binding:"required"`
@@ -59,6 +61,13 @@ func init() {
 	if runMigration {
 		runDBMigration()
 	}
+
+	//inject dbFactory to admin controller
+	adminController, err = admin.NewController(dbFactory)
+	if err != nil {
+		glog.Fatal(err.Error())
+		panic(fmt.Errorf("Fatal error: %s", err))
+	}
 }
 
 func setupRouter() *gin.Engine {
@@ -70,21 +79,34 @@ func setupRouter() *gin.Engine {
 	if port == "" {
 		port = "8000"
 	}
-	router.Use(cors.New(cors.Config{
-		AllowAllOrigins: true,
-		AllowMethods:    []string{"PUT", "PATCH", "GET", "POST", "DELETE"},
-		AllowHeaders:    []string{"Origin", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
-		ExposeHeaders:   []string{"Content-Length"},
-	}))
+	// router.Use(cors.New(cors.Config{
+	// 	AllowAllOrigins: true,
+	// 	AllowMethods:    []string{"PUT", "PATCH", "GET", "POST", "DELETE"},
+	// 	AllowHeaders:    []string{"Origin", "Authorization", "Content-Type", "Access-Control-Allow-Origin"},
+	// 	ExposeHeaders:   []string{"Content-Length"},
+	// }))
 
 	// the jwt middleware
-	authMiddleware := &jwt.GinJWTMiddleware{
+	authMiddleware := jwt.GinJWTMiddleware{
 		Realm:      "test zone",
 		Key:        []byte("secret key"),
 		Timeout:    time.Hour,
 		MaxRefresh: time.Hour,
+		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			if v, ok := data.(*User); ok {
+				return jwt.MapClaims{
+					identityKey: v.UserName,
+				}
+			}
+			return jwt.MapClaims{}
+		},
+		// IdentityHandler: func(c *gin.Context) interface{} {
+		// 	claims := jwt.ExtractClaims(c)
+		// 	return &User{
+		// 		UserName: claims["id"].(string),
+		// 	}
+		// },
 		Authenticator: func(c *gin.Context) (interface{}, error) {
-			fmt.Println("kadieu")
 			var loginVals login
 			if err := c.ShouldBind(&loginVals); err != nil {
 				return "", jwt.ErrMissingLoginValues
@@ -115,11 +137,7 @@ func setupRouter() *gin.Engine {
 			return nil, jwt.ErrFailedAuthentication
 		},
 		Authorizator: func(data interface{}, c *gin.Context) bool {
-			if v, ok := data.(*User); ok && v.UserName != "" {
-				return true
-			}
-
-			return false
+			return true
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
 			c.JSON(code, gin.H{
@@ -127,7 +145,7 @@ func setupRouter() *gin.Engine {
 				"message": message,
 			})
 		},
-		TokenLookup:   "header:Authorization",
+		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
 		TokenHeadName: "Bearer",
 		TimeFunc:      time.Now,
 	}
@@ -150,7 +168,17 @@ func setupRouter() *gin.Engine {
 		v1.GET("/hello", helloHandler)
 		v1.Use(CheckAdmin)
 		{
-			v1.GET("/admin", helloHandler)
+			v1.GET("/list-test", adminController.GetListTest)
+
+			v1.POST("/create-test", adminController.CreateTest)
+			v1.POST("/create-question", adminController.CreateQuestion)
+			v1.POST("/update-test", adminController.UpdateTest)
+			v1.POST("/update-question", adminController.UpdateQuestion)
+			v1.POST("/update-choice", adminController.UpdateChoice)
+
+			v1.DELETE("/delete", adminController.DeleteTest)
+			v1.DELETE("/delete-question", adminController.DeleteQuestion)
+			v1.DELETE("/delete-choice", adminController.DeleteChoice)
 		}
 	}
 
@@ -209,20 +237,28 @@ func runDBMigration() {
 	if runSeeder {
 		glog.Info("Running db seeder")
 		var count int
-		var id uint
-		user := dataModel.User{}
+		var admin_role uint
+		var user_role uint
 		db.Model(&dataModel.Role{}).Count(&count)
 		if count == 0 {
 			glog.V(1).Info("Running db seeder for table Currency")
-			role := dataModel.Role{
+			role1 := dataModel.Role{
 				Name: "Admin",
 			}
-			db.Create(&role)
-			id = role.ID
+			db.Create(&role1)
+
+			admin_role = role1.ID
+
+			role2 := dataModel.Role{
+				Name: "User",
+			}
+			db.Create(&role2)
+			user_role = role2.ID
 		}
 		glog.V(1).Info("Running db seeder for table Currency")
 
-		if err := db.Where("email = ?", "admin@admin.com").First(&user).Error; err != nil {
+		db.Model(&dataModel.User{}).Count(&count)
+		if count == 0 {
 			password := []byte("12345678")
 			// Hashing the password with the default cost of 10
 			hashedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
@@ -234,25 +270,38 @@ func runDBMigration() {
 				Name:     "Admin",
 				Email:    "admin@admin.com",
 				Password: string(hashedPassword),
-				RoleID:   id,
+				RoleID:   admin_role,
 			}
 			db.Create(&user)
+
+			user2 := dataModel.User{
+				Name:     "User",
+				Email:    "user@user.com",
+				Password: string(hashedPassword),
+				RoleID:   user_role,
+			}
+			db.Create(&user2)
 		}
 	}
 }
 
 func CheckAdmin(c *gin.Context) {
-	email, _ := c.Get("userID")
-	db, ok := c.MustGet("databaseConn").(*gorm.DB)
-	if !ok {
-		fmt.Println(ok)
+	db, err := dbFactory.DBConnection()
+	if err != nil {
+		glog.Fatalf("Failed to open database connection: %s", err)
+		panic(fmt.Errorf("Fatal error connecting to database: %s", err))
 	}
+	defer db.Close()
+
+	claims := jwt.ExtractClaims(c)
+	name := claims["id"].(string)
+
 	var user dataModel.User
 	var role dataModel.Role
-	db.Where("email = ?", email).Find(&user)
+	db.Where("name = ?", name).Find(&user)
 	db.First(&role, user.RoleID)
 
-	if role.Name != "Admin" {
+	if user.Name != "Admin" {
 		c.JSON(400, gin.H{
 			"code":    400,
 			"message": "you cannot have access",
@@ -264,5 +313,11 @@ func CheckAdmin(c *gin.Context) {
 }
 
 func helloHandler(c *gin.Context) {
-	fmt.Println("hello")
+	claims := jwt.ExtractClaims(c)
+	fmt.Println(claims["id"].(string))
+	c.JSON(200, gin.H{
+		"userID":   claims["id"],
+		"userName": claims["id"].(string),
+		"text":     "Hello World.",
+	})
 }
