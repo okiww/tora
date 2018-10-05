@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"okkybudiman/data"
 	dataModel "okkybudiman/data/model"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -135,7 +134,7 @@ func (ctrl *Controller) CreateQuestion(c *gin.Context) {
 				for key, v := range q.Choices {
 					choices = dataModel.QuestionChoice{
 						Choice:     v.Choice,
-						Key:        strconv.Itoa(key + 1),
+						Key:        key + 1,
 						QuestionID: question.ID,
 					}
 
@@ -157,7 +156,59 @@ func (ctrl *Controller) CreateQuestion(c *gin.Context) {
 	return
 }
 
-func (ctrl *Controller) GetTestByID(c *gin.Context) {
+func (ctrl *Controller) GetDetailTest(c *gin.Context) {
+	db, err := ctrl.dbFactory.DBConnection()
+	if err != nil {
+		fmt.Println("err")
+		glog.Errorf("Failed to open db connection: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var test dataModel.Test
+	var questions []dataModel.Question
+	var choices []dataModel.QuestionChoice
+	var response testDetailResponse
+	id := c.Param("id")
+
+	uid, err := uuid.FromString(id)
+	if err := db.Where("id =?", uid).Find(&test).Error; err == nil {
+		response.ID = test.ID
+		response.Name = test.Name
+		response.Description = test.Description
+		response.TotalQuestion = test.TotalQuestion
+
+		if err := db.Where("test_id =?", test.ID).Find(&questions).Error; err == nil {
+			for k, v := range questions {
+				question := questionResponse{
+					ID:       v.ID,
+					Question: v.Question,
+					Answer:   v.Answer,
+				}
+				response.Questions = append(response.Questions, question)
+				if err := db.Order("key").Where("question_id =?", v.ID).Find(&choices).Error; err == nil {
+					for _, q := range choices {
+						choice := questionChoiceResponse{
+							ID:     q.ID,
+							Key:    q.Key,
+							Choice: q.Choice,
+						}
+
+						response.Questions[k].Choices = append(response.Questions[k].Choices, choice)
+					}
+				}
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":  http.StatusOK,
+				"message": "success get data",
+				"data":    response,
+			})
+
+			return
+		}
+	}
 }
 
 func (ctrl *Controller) GetListTest(c *gin.Context) {
@@ -197,6 +248,14 @@ func (ctrl *Controller) GetListTest(c *gin.Context) {
 }
 
 func (ctrl *Controller) GetQuestion(c *gin.Context) {
+	db, err := ctrl.dbFactory.DBConnection()
+	if err != nil {
+		fmt.Println("err")
+		glog.Errorf("Failed to open db connection: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
 }
 
 func (ctrl *Controller) GetParticipant(c *gin.Context) {
