@@ -248,6 +248,38 @@ func (ctrl *Controller) GetListTest(c *gin.Context) {
 }
 
 func (ctrl *Controller) GetParticipant(c *gin.Context) {
+	db, err := ctrl.dbFactory.DBConnection()
+	if err != nil {
+		fmt.Println("err")
+		glog.Errorf("Failed to open db connection: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var userParticipant []dataModel.UserAttemptTest
+
+	db.Find(&userParticipant)
+
+	if len(userParticipant) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"status":            http.StatusOK,
+			"message":           "no users are taking this test",
+			"data":              userParticipant,
+			"total_participant": len(userParticipant),
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":            http.StatusOK,
+		"message":           "success get data",
+		"data":              userParticipant,
+		"total_participant": len(userParticipant),
+	})
+
+	return
 }
 
 func (ctrl *Controller) UpdateTest(c *gin.Context) {
