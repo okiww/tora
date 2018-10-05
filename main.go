@@ -169,6 +169,8 @@ func setupRouter() *gin.Engine {
 	v1.Use(authMiddleware.MiddlewareFunc())
 	{
 		v1.GET("/hello", helloHandler)
+		v1.GET("/list-test", adminController.GetListTest)
+		v1.GET("/test/:id/detail", adminController.GetDetailTest)
 		//api user
 		user := v1.Group("/user")
 		user.Use(CheckUser)
@@ -180,9 +182,6 @@ func setupRouter() *gin.Engine {
 		//api admin
 		v1.Use(CheckAdmin)
 		{
-			v1.GET("/list-test", adminController.GetListTest)
-			v1.GET("/test/:id/detail", adminController.GetDetailTest)
-
 			v1.POST("/create-test", adminController.CreateTest)
 			v1.POST("/create-question", adminController.CreateQuestion)
 			v1.POST("/update-test", adminController.UpdateTest)
