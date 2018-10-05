@@ -8,7 +8,7 @@ type UserAnswer struct {
 	UserID     uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
 	TestID     uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
 	QuestionID uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
-	ChoiceID   uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
+	Answer     string    `gorm:"type:char(36)" gorm:"default:18"`
 	Point      int
 
 	User           User

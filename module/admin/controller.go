@@ -247,17 +247,6 @@ func (ctrl *Controller) GetListTest(c *gin.Context) {
 	}
 }
 
-func (ctrl *Controller) GetQuestion(c *gin.Context) {
-	db, err := ctrl.dbFactory.DBConnection()
-	if err != nil {
-		fmt.Println("err")
-		glog.Errorf("Failed to open db connection: %s", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	defer db.Close()
-}
-
 func (ctrl *Controller) GetParticipant(c *gin.Context) {
 }
 

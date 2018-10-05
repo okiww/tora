@@ -10,4 +10,6 @@ type UserAttemptTest struct {
 
 	TestID uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
 	Test   Test
+
+	IsFinished bool
 }

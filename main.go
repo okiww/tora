@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"okkybudiman/module/admin"
+	"okkybudiman/module/user"
 	u "okkybudiman/utility"
 
 	"github.com/appleboy/gin-jwt"
@@ -30,6 +31,7 @@ var (
 	configuration   config.Configuration
 	dbFactory       *data.DBFactory
 	adminController *admin.Controller
+	userController  *user.Controller
 )
 var identityKey = "id"
 
@@ -68,6 +70,13 @@ func init() {
 		glog.Fatal(err.Error())
 		panic(fmt.Errorf("Fatal error: %s", err))
 	}
+
+	//inject dbFactory to user controller
+	userController, err = user.NewController(dbFactory)
+	if err != nil {
+		glog.Fatal(err.Error())
+		panic(fmt.Errorf("Fatal error: %s", err))
+	}
 }
 
 func setupRouter() *gin.Engine {
@@ -100,12 +109,6 @@ func setupRouter() *gin.Engine {
 			}
 			return jwt.MapClaims{}
 		},
-		// IdentityHandler: func(c *gin.Context) interface{} {
-		// 	claims := jwt.ExtractClaims(c)
-		// 	return &User{
-		// 		UserName: claims["id"].(string),
-		// 	}
-		// },
 		Authenticator: func(c *gin.Context) (interface{}, error) {
 			var loginVals login
 			if err := c.ShouldBind(&loginVals); err != nil {
@@ -166,6 +169,15 @@ func setupRouter() *gin.Engine {
 	v1.Use(authMiddleware.MiddlewareFunc())
 	{
 		v1.GET("/hello", helloHandler)
+		//api user
+		user := v1.Group("/user")
+		user.Use(CheckUser)
+		{
+			user.POST("/answer", userController.AnswerTest)
+			user.POST("/attempt-test", userController.AttempTest)
+			user.GET("/test/:id/result", userController.Result)
+		}
+		//api admin
 		v1.Use(CheckAdmin)
 		{
 			v1.GET("/list-test", adminController.GetListTest)
@@ -181,6 +193,7 @@ func setupRouter() *gin.Engine {
 			v1.DELETE("/delete-question", adminController.DeleteQuestion)
 			v1.DELETE("/delete-choice", adminController.DeleteChoice)
 		}
+
 	}
 
 	if err := http.ListenAndServe(":"+port, router); err != nil {
@@ -301,8 +314,33 @@ func CheckAdmin(c *gin.Context) {
 	var role dataModel.Role
 	db.Where("name = ?", name).Find(&user)
 	db.First(&role, user.RoleID)
+	if role.Name != "Admin" {
+		c.JSON(400, gin.H{
+			"code":    400,
+			"message": "you cannot have access",
+		})
+		c.Abort()
+	}
 
-	if user.Name != "Admin" {
+	c.Next()
+}
+
+func CheckUser(c *gin.Context) {
+	db, err := dbFactory.DBConnection()
+	if err != nil {
+		glog.Fatalf("Failed to open database connection: %s", err)
+		panic(fmt.Errorf("Fatal error connecting to database: %s", err))
+	}
+	defer db.Close()
+
+	claims := jwt.ExtractClaims(c)
+	name := claims["id"].(string)
+
+	var user dataModel.User
+	var role dataModel.Role
+	db.Where("name = ?", name).Find(&user)
+	db.First(&role, user.RoleID)
+	if role.Name != "User" {
 		c.JSON(400, gin.H{
 			"code":    400,
 			"message": "you cannot have access",
