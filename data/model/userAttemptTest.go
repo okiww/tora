@@ -1,6 +1,10 @@
 package model
 
-import uuid "github.com/satori/go.uuid"
+import (
+	"time"
+
+	uuid "github.com/satori/go.uuid"
+)
 
 //modeling table UserAttempTask
 type UserAttemptTest struct {
@@ -10,6 +14,10 @@ type UserAttemptTest struct {
 
 	TestID uuid.UUID `gorm:"type:char(36)" gorm:"default:18"`
 	Test   Test
+
+	StartTest  time.Time
+	EndTest    time.Time
+	FinishTime string `gorm:"type:char(36)" gorm:"default:18"`
 
 	IsFinished bool
 }

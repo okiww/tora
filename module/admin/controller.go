@@ -18,6 +18,11 @@ type Controller struct {
 	dbFactory *data.DBFactory
 }
 
+const (
+	// See http://golang.org/pkg/time/#Parse
+	timeFormat = "2006-01-02 15:04 MST"
+)
+
 func NewController(dbFactory *data.DBFactory) (*Controller, error) {
 	if dbFactory == nil {
 		return nil, errors.New("failed to instantiate rate controller")

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"okkybudiman/data"
 	dataModel "okkybudiman/data/model"
+	"time"
 
 	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
@@ -58,10 +59,15 @@ func (ctrl *Controller) AttempTest(c *gin.Context) {
 		return
 	}
 	testID, _ := uuid.FromString(req.TestID)
+
+	//set timezone,
+	now := time.Now()
 	attemptTest := dataModel.UserAttemptTest{
 		UserID:     userId,
 		TestID:     testID,
 		IsFinished: false,
+		StartTest:  now,
+		EndTest:    now,
 	}
 
 	db.Save(&attemptTest)
@@ -155,7 +161,18 @@ func (ctrl *Controller) AnswerTest(c *gin.Context) {
 
 	db.Save(&score)
 	//update tb user_attempt_test
-	db.Model(&userAttempt).Where("test_id = ? AND user_id = ?", testID, userId).Update("is_finished", true)
+	db.Where("test_id = ? AND user_id = ?", testID, userId).Find(&userAttempt)
+	t1 := userAttempt.StartTest
+	t2 := time.Now()
+
+	diff := t2.Sub(t1)
+	out := time.Time{}.Add(diff)
+
+	userAttempt.IsFinished = true
+	userAttempt.EndTest = t2
+	userAttempt.FinishTime = out.Format("15:04:05")
+
+	db.Save(&userAttempt)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"status":  http.StatusCreated,
