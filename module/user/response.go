@@ -10,4 +10,5 @@ type result struct {
 	TotalWrongAnswered int       `json:"total_wrong_answered" binding:"required"`
 	TotalNotAnswered   int       `json:"total_not_answered" binding:"required"`
 	Score              int       `json:"score" binding:"required"`
+	TimeComplete       string    `json:"time_complete" binding:"required"`
 }

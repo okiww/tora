@@ -197,10 +197,11 @@ func (ctrl *Controller) Result(c *gin.Context) {
 	userId := user.ID
 
 	var userScore dataModel.UserScore
+	var userAttempt dataModel.UserAttemptTest
 	id := c.Param("id")
 	testID, _ := uuid.FromString(id)
 	if err := db.Where("test_id = ? AND user_id = ?", testID, userId).Find(&userScore).Error; err == nil {
-
+		db.Where("test_id = ? AND user_id = ?", testID, userId).Find(&userAttempt)
 		data := result{
 			ID:                 userScore.ID,
 			UserID:             userScore.UserID,
@@ -209,6 +210,7 @@ func (ctrl *Controller) Result(c *gin.Context) {
 			TotalWrongAnswered: userScore.TotalWrongAnswered,
 			TotalNotAnswered:   userScore.TotalNotAnswered,
 			Score:              userScore.Score,
+			TimeComplete:       userAttempt.FinishTime,
 		}
 
 		c.JSON(http.StatusOK, gin.H{
