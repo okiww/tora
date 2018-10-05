@@ -169,6 +169,7 @@ func setupRouter() *gin.Engine {
 		v1.Use(CheckAdmin)
 		{
 			v1.GET("/list-test", adminController.GetListTest)
+			v1.GET("/test/:id/detail", adminController.GetDetailTest)
 
 			v1.POST("/create-test", adminController.CreateTest)
 			v1.POST("/create-question", adminController.CreateQuestion)
