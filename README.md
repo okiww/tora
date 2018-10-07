@@ -3,8 +3,7 @@ Minimum build API for Try Out System BE Exercise using Go language powered by [G
 
 ## Run the code
 
-The first clone or download this project:
-`$ git clone git@github.com:okiww/Foreign-Currency-GO.git && cd Foreign-Currency-GO`
+The first clone or download this project
 
 ### The way
 
