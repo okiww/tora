@@ -21,7 +21,7 @@ You will need Go installed in your local machine
 
   `$ cp default.yml .env.yml`
 
-* Ensure your database server is running and application table of your choice (by default it is ruangguru, you can change it in .env.yml file) is exist
+* Ensure your database server is running and application table of your choice (by default it is tora, you can change it in .env.yml file) is exist
 
 * Run the app. For first run you may want to add `--migrate` and `--seeder` switch to run auto db migration and seeding data.
 
